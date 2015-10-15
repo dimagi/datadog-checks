@@ -1,0 +1,7 @@
+init_config:
+
+instances:
+    -   cluster: my_cluster
+        username: usernmae
+        password: password
+        # timeout: 5
