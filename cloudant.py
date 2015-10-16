@@ -84,7 +84,7 @@ class CloudantCheck(AgentCheck):
         self.get_data_for_endpoint(
             instance,
             'rate/status_code',
-            lambda target: target.split(' ', 1)[-1],
+            lambda target: target.split(' ')[-1],
             metric_group='http_status_code',
             tags=tags
         )
@@ -93,7 +93,7 @@ class CloudantCheck(AgentCheck):
         self.get_data_for_endpoint(
             instance,
             'rate/verb',
-            lambda target: target.split(' ', 1)[-1].lower(),
+            lambda target: target.split(' ')[-1].lower(),
             metric_group='http_method',
             tags=tags
         )
@@ -104,7 +104,7 @@ class CloudantCheck(AgentCheck):
             assert tokens[0] == instance['cluster']
             return tokens[1].lower()
 
-        self.get_data_for_endpoint(instance, 'disk_use', _stat_name, tags)
+        self.get_data_for_endpoint(instance, 'disk_use', _stat_name, tags=tags)
 
     def get_data_for_endpoint(self, instance, endpoint, stat_name_fn=None, metric_group=None, tags=None):
         url = self._build_url(endpoint, instance)
@@ -118,7 +118,8 @@ class CloudantCheck(AgentCheck):
         if data is None:
             self.warning("No stats could be retrieved from {}".format(url))
 
-        self.record_data(data, metric_group or endpoint, stat_name_fn, tags)
+        metric_group = metric_group or endpoint
+        self.record_data(data, metric_group, stat_name_fn, tags)
 
     def _should_record_data(self, tag, epoch):
         last_ts = self.last_timestamps.get(tag, None)
