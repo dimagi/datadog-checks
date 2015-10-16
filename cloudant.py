@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import datetime
 import requests
 
@@ -14,7 +15,8 @@ class CloudantCheck(AgentCheck):
     SERVICE_CHECK_NAME = 'cloudant.can_connect'
     SOURCE_TYPE_NAME = 'cloudant'
     TIMEOUT = 5
-    URL_TEMPLATE = 'https://{username}.cloudant.com/_api/v2/monitoring/{endpoint}?cluster={cluster}'
+    MONITOR_URL_TEMPLATE = 'https://{username}.cloudant.com/_api/v2/monitoring/{endpoint}?cluster={cluster}'
+    ACTIVE_TASKS_URL_TEMPLATE = 'https://{username}.cloudant.com/_active_tasks'
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(CloudantCheck, self).__init__(name, init_config, agentConfig, instances)
@@ -25,13 +27,7 @@ class CloudantCheck(AgentCheck):
             if not key in instance:
                 raise Exception("A {} must be specified".format(key))
 
-    def _build_url(self, endpoint, instance):
-        return self.URL_TEMPLATE.format(
-            endpoint=endpoint,
-            **instance
-        )
-
-    def _get_stats(self, url, instance):
+    def _get_data_from_url(self, url, instance):
         "Hit a given URL and return the parsed json"
         self.log.debug('Fetching Cloudant stats at url: %s' % url)
 
@@ -43,6 +39,18 @@ class CloudantCheck(AgentCheck):
                          timeout=int(instance.get('timeout', self.TIMEOUT)))
         r.raise_for_status()
         return r.json()
+
+    def _safe_get_data_from_url(self, url, instance):
+        try:
+            data = self._get_data_from_url(url, instance)
+        except requests.exceptions.HTTPError as e:
+            self.warning('Error reading data from URL: {}'.format(url))
+            return
+
+        if data is None:
+            self.warning("No stats could be retrieved from {}".format(url))
+
+        return data
 
     def check(self, instance):
         self._validate_instance(instance)
@@ -58,11 +66,15 @@ class CloudantCheck(AgentCheck):
         self.get_data_for_endpoint(instance, 'map_doc', tags=tags)
         self.get_data_for_endpoint(instance, 'rps', metric_group='doc_reads', tags=tags)
         self.get_data_for_endpoint(instance, 'wps', metric_group='doc_writes', tags=tags)
+        self.active_task_data(instance, tags)
 
     def check_connection(self, instance, tags):
-        url = self._build_url('uptime', instance)
+        url = self.MONITOR_URL_TEMPLATE.format(
+            endpoint='uptime',
+            **instance
+        )
         try:
-            self._get_stats(url, instance)
+            self._get_data_from_url(url, instance)
         except requests.exceptions.Timeout as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
                 tags=tags, message="Request timeout: {0}, {1}".format(url, e))
@@ -107,16 +119,12 @@ class CloudantCheck(AgentCheck):
         self.get_data_for_endpoint(instance, 'disk_use', _stat_name, tags=tags)
 
     def get_data_for_endpoint(self, instance, endpoint, stat_name_fn=None, metric_group=None, tags=None):
-        url = self._build_url(endpoint, instance)
+        url = self.MONITOR_URL_TEMPLATE.format(
+            endpoint=endpoint,
+            **instance
+        )
 
-        try:
-            data = self._get_stats(url, instance)
-        except requests.exceptions.HTTPError as e:
-            self.warning('Error reading data from URL: {}'.format(url))
-            return
-
-        if data is None:
-            self.warning("No stats could be retrieved from {}".format(url))
+        data = self._safe_get_data_from_url(url, instance)
 
         metric_group = metric_group or endpoint
         self.record_data(data, metric_group, stat_name_fn, tags)
@@ -145,6 +153,24 @@ class CloudantCheck(AgentCheck):
                     self.last_timestamps[metric_name] = epoch
                     metric_tags = tags or []
                     self.gauge(metric_name, value, tags=metric_tags, timestamp=epoch)
+
+    def active_task_data(self, instance, tags):
+        url = self.ACTIVE_TASKS_URL_TEMPLATE.format(
+            username=instance['username']
+        )
+
+        data = self._safe_get_data_from_url(url, instance)
+        cnt = Counter()
+        for task in data:
+            type_ = task.get('type', None)
+            if type_:
+                cnt[type_] += 1
+
+        metric_tags = tags or []
+        prefix = 'cloudant.tasks'
+        for task_type, count in cnt.items():
+            metric_name = '.'.join([prefix, task_type])
+            self.gauge(metric_name, count, tags=metric_tags)
 
     def _convert_to_per_sec(self, value, granularity):
         if value is None:
