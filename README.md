@@ -3,6 +3,13 @@ Datadog check for cloudant.
 
 See https://docs.cloudant.com/monitoring.html
 
+## Installation
+
+1. Copy `cloudant.py` to the [checks.d](http://docs.datadoghq.com/guides/agent_checks/#directory) directory.
+2. Copy `cloudant.yaml.example` to `conf.d/cloudant.yaml`.
+3. Edit `cloudant.yaml` with appropriate values.
+4. Restart the Datadog agent.
+
 ## Metric list
 
 ### Requests per second by status code
