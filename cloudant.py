@@ -51,8 +51,13 @@ class CloudantCheck(AgentCheck):
         tags.append('cluster:{}'.format(instance['cluster']))
         self.check_connection(instance, tags)
 
-        self.status_code_data(instance, tags)
+        self.rate_status_code_data(instance, tags)
+        self.rate_verb_data(instance, tags)
         self.disk_use_data(instance, tags)
+        self.get_data_for_endpoint(instance, 'kv_emits', tags=tags)
+        self.get_data_for_endpoint(instance, 'map_doc', tags=tags)
+        self.get_data_for_endpoint(instance, 'rps', metric_group='doc_reads', tags=tags)
+        self.get_data_for_endpoint(instance, 'wps', metric_group='doc_writes', tags=tags)
 
     def check_connection(self, instance, tags):
         url = self._build_url('uptime', instance)
@@ -75,12 +80,21 @@ class CloudantCheck(AgentCheck):
                 tags=tags,
                 message='Connection to %s was successful' % url)
 
-    def status_code_data(self, instance, tags):
+    def rate_status_code_data(self, instance, tags):
         self.get_data_for_endpoint(
             instance,
             'rate/status_code',
             lambda target: target.split(' ', 1)[-1],
-            metric_group='status_code',
+            metric_group='http_status_code',
+            tags=tags
+        )
+
+    def rate_verb_data(self, instance, tags):
+        self.get_data_for_endpoint(
+            instance,
+            'rate/verb',
+            lambda target: target.split(' ', 1)[-1].lower(),
+            metric_group='http_method',
             tags=tags
         )
 
@@ -91,9 +105,6 @@ class CloudantCheck(AgentCheck):
             return tokens[1].lower()
 
         self.get_data_for_endpoint(instance, 'disk_use', _stat_name, tags)
-
-    def kv_emits_data(self, instance, tags):
-        self.get_data_for_endpoint(instance, 'kv_emits', tags=tags)
 
     def get_data_for_endpoint(self, instance, endpoint, stat_name_fn=None, metric_group=None, tags=None):
         url = self._build_url(endpoint, instance)
