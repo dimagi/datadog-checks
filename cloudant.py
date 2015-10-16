@@ -51,7 +51,8 @@ class CloudantCheck(AgentCheck):
         tags.append('cluster:{}'.format(instance['cluster']))
         self.check_connection(instance, tags)
 
-        self.get_status_code_data(instance, tags)
+        self.status_code_data(instance, tags)
+        self.disk_use_data(instance, tags)
 
     def check_connection(self, instance, tags):
         url = self._build_url('uptime', instance)
@@ -74,32 +75,47 @@ class CloudantCheck(AgentCheck):
                 tags=tags,
                 message='Connection to %s was successful' % url)
 
-    def get_status_code_data(self, instance, tags):
-        endpoint = 'rate/status_code'
+    def status_code_data(self, instance, tags):
+        self.get_data_for_endpoint(
+            instance,
+            'rate/status_code',
+            lambda target: target.split(' ', 1)[-1],
+            metric_group='status_code',
+            tags=tags
+        )
 
+    def disk_use_data(self, instance, tags):
+        def _stat_name(target):
+            tokens = target.split(' ')
+            assert tokens[0] == instance['cluster']
+            return tokens[1].lower()
+
+        self.get_data_for_endpoint(instance, 'disk_use', _stat_name, tags)
+
+    def kv_emits_data(self, instance, tags):
+        self.get_data_for_endpoint(instance, 'kv_emits', tags=tags)
+
+    def get_data_for_endpoint(self, instance, endpoint, stat_name_fn=None, metric_group=None, tags=None):
         url = self._build_url(endpoint, instance)
 
-        # Fetch initial stats and capture a service check based on response.
-        service_check_tags = ['cluster:{}'.format(instance['cluster'])]
         try:
             data = self._get_stats(url, instance)
         except requests.exceptions.HTTPError as e:
             self.warning('Error reading data from URL: {}'.format(url))
             return
 
-        # No overall stats? bail out now
         if data is None:
             self.warning("No stats could be retrieved from {}".format(url))
 
-        self.record_data(data, 'status_code', lambda target: target.split(' ', 1)[-1], tags)
+        self.record_data(data, metric_group or endpoint, stat_name_fn, tags)
 
     def _should_record_data(self, tag, epoch):
         last_ts = self.last_timestamps.get(tag, None)
         return not last_ts or last_ts < epoch
 
-    def record_data(self, data, endpoint_name, stat_name_fn, tags=None):
+    def record_data(self, data, metric_group, stat_name_fn=None, tags=None):
         end_epoch = data['end']
-        prefix = '.'.join(['cloudant', endpoint_name])
+        prefix = '.'.join(['cloudant', metric_group])
         if not self._should_record_data(prefix, end_epoch):
             self.log.info('Skipping old data: {}'.format(prefix))
             return
@@ -107,7 +123,7 @@ class CloudantCheck(AgentCheck):
         granularity = data.get('granularity', '15sec')
         for response in data['target_responses']:
             target = response['target']
-            metric_name = '.'.join([prefix, stat_name_fn(target)])
+            metric_name = '.'.join([prefix, stat_name_fn(target)]) if stat_name_fn else prefix
             datapoints = response['datapoints']
             for datapoint in datapoints:
                 value, epoch = datapoint
