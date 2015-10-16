@@ -1,5 +1,7 @@
 # datadog-cloudant
-Datadog check for cloudant
+Datadog check for cloudant.
+
+See https://docs.cloudant.com/monitoring.html
 
 ## Metric list
 
