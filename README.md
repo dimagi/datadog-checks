@@ -32,3 +32,8 @@ See https://docs.cloudant.com/monitoring.html
 
 ### key:value emits per second.
 - cloudant.kv_emits
+
+### task counts
+- cloudant.tasks.replication
+- cloudant.tasks.indexer
+- cloudant.tasks.view_compaction
