@@ -3,35 +3,25 @@ Datadog check for celery using the [Flower API](http://flower.readthedocs.org/en
 
 ## Metric list
 
-### Requests per second by status code
-- cloudant.http_status_code.2xx
-- cloudant.http_status_code.3xx
-- cloudant.http_status_code.4xx
-- cloudant.http_status_code.5xx
+### Worker
+Tags:
 
-### Requests per second by HTTP method
-- cloudant.http_method.get
-- cloudant.http_method.post
-- cloudant.http_method.put
-- cloudant.http_method.delete
-- cloudant.http_method.copy
-- cloudant.http_method.head
+- celery_worker:{worker name}
+- celery_queue:{queue name}
 
-### Doc reads / writes per second
-- cloudant.doc_writes
-- cloudant.doc_reads
+Metrics:
 
-### Disk use (bytes)
-- cloudant.disk_use.used
-- cloudant.disk_use.free
+- celery.tasks_registered
+- celery.max-concurrency
+- celery.tasks_completed
+    - additional tags: celery_task_name:{task name}
+  
+### Tasks
+Tags:
 
-### Documents processed by a map function, per second
-- cloudant.map_doc
+- celery_worker:{worker name}
 
-### key:value emits per second.
-- cloudant.kv_emits
+Metrics:
 
-### task counts
-- cloudant.tasks.replication
-- cloudant.tasks.indexer
-- cloudant.tasks.view_compaction
+- celery.tasks_by_state.{state} 
+    - [List of states](http://docs.celeryproject.org/en/latest/userguide/tasks.html#built-in-states)
