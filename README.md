@@ -1,46 +1,11 @@
-# datadog-cloudant
-Datadog check for cloudant.
+# datadog-checks
+Custom datadog checks
 
 See https://docs.cloudant.com/monitoring.html
 
 ## Installation
 
-1. Copy `cloudant.py` to the [checks.d](http://docs.datadoghq.com/guides/agent_checks/#directory) directory.
-2. Copy `cloudant.yaml.example` to `conf.d/cloudant.yaml`.
-3. Edit `cloudant.yaml` with appropriate values.
+1. Copy `<check>/<check>.py` to the [checks.d](http://docs.datadoghq.com/guides/agent_checks/#directory) directory.
+2. Copy `<check>.yaml.example` to `conf.d/<check>.yaml`.
+3. Edit `<check>.yaml` with appropriate values.
 4. Restart the Datadog agent.
-
-## Metric list
-
-### Requests per second by status code
-- cloudant.http_status_code.2xx
-- cloudant.http_status_code.3xx
-- cloudant.http_status_code.4xx
-- cloudant.http_status_code.5xx
-
-### Requests per second by HTTP method
-- cloudant.http_method.get
-- cloudant.http_method.post
-- cloudant.http_method.put
-- cloudant.http_method.delete
-- cloudant.http_method.copy
-- cloudant.http_method.head
-
-### Doc reads / writes per second
-- cloudant.doc_writes
-- cloudant.doc_reads
-
-### Disk use (bytes)
-- cloudant.disk_use.used
-- cloudant.disk_use.free
-
-### Documents processed by a map function, per second
-- cloudant.map_doc
-
-### key:value emits per second.
-- cloudant.kv_emits
-
-### task counts
-- cloudant.tasks.replication
-- cloudant.tasks.indexer
-- cloudant.tasks.view_compaction
