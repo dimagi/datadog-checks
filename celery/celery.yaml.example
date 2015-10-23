@@ -1,0 +1,7 @@
+init_config:
+
+instances:
+    -   flower_url: http://localhost:5555
+        # username: usernmae
+        # password: password
+        # timeout: 5
