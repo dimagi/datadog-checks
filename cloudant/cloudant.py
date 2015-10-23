@@ -135,7 +135,7 @@ class CloudantCheck(AgentCheck):
 
     def record_data(self, data, metric_group, stat_name_fn=None, tags=None):
         end_epoch = data['end']
-        prefix = '.'.join(['cloudant', metric_group])
+        prefix = '.'.join([self.SOURCE_TYPE_NAME, metric_group])
         if not self._should_record_data(prefix, end_epoch):
             self.log.info('Skipping old data: {}'.format(prefix))
             return
@@ -167,7 +167,7 @@ class CloudantCheck(AgentCheck):
                 cnt[type_] += 1
 
         metric_tags = tags or []
-        prefix = 'cloudant.tasks'
+        prefix = '{}.tasks'.format(self.SOURCE_TYPE_NAME)
         for task_type, count in cnt.items():
             metric_name = '.'.join([prefix, task_type])
             self.gauge(metric_name, count, tags=metric_tags)
