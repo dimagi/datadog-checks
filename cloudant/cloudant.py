@@ -140,19 +140,19 @@ class CloudantCheck(AgentCheck):
             self.log.info('Skipping old data: {}'.format(prefix))
             return
 
-        granularity = data.get('granularity', '15sec')
         for response in data['target_responses']:
             target = response['target']
             metric_name = '.'.join([prefix, stat_name_fn(target)]) if stat_name_fn else prefix
             datapoints = response['datapoints']
             for datapoint in datapoints:
                 value, epoch = datapoint
-                value = self._convert_to_per_sec(value, granularity)
                 if value is not None and self._should_record_data(metric_name, epoch):
-                    self.log.debug('Recording data: {}, {}'.format(metric_name, value))
+                    self.log.debug('Recording data: %s: %s %s', epoch, metric_name, value)
                     self.last_timestamps[metric_name] = epoch
                     metric_tags = tags or []
                     self.gauge(metric_name, value, tags=metric_tags, timestamp=epoch)
+                else:
+                    self.log.debug('Ignoring data: %s: %s %s', epoch, metric_name, value)
 
     def active_task_data(self, instance, tags):
         url = self.ACTIVE_TASKS_URL_TEMPLATE.format(
@@ -171,21 +171,6 @@ class CloudantCheck(AgentCheck):
         for task_type, count in cnt.items():
             metric_name = '.'.join([prefix, task_type])
             self.gauge(metric_name, count, tags=metric_tags)
-
-    def _convert_to_per_sec(self, value, granularity):
-        if value is None:
-            return
-        
-        try:
-            value = int(value)
-        except ValueError:
-            self.log.debug('Value not an int: %s', value)
-            return
-
-        if granularity == '15sec':
-            return value / 15
-        else:
-            self.log.info('Unknown granularity: %s', granularity)
 
 
 if __name__ == '__main__':
