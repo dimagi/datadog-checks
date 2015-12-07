@@ -1,9 +1,14 @@
 from collections import Counter
 import requests
+from requests.exceptions import HTTPError
 
 from checks import AgentCheck
 from util import headers
 import sys
+
+
+class RequestError(Exception):
+    pass
 
 
 class CloudantCheck(AgentCheck):
@@ -36,7 +41,11 @@ class CloudantCheck(AgentCheck):
         request_headers['Accept'] = 'text/json'
         r = requests.get(url, auth=auth, headers=request_headers,
                          timeout=int(instance.get('timeout', self.TIMEOUT)))
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except HTTPError as e:
+            raise RequestError("URL: {}".format(url), e)
+
         return r.json()
 
     def _safe_get_data_from_url(self, url, instance):
@@ -69,7 +78,7 @@ class CloudantCheck(AgentCheck):
 
     def check_connection(self, instance, tags):
         url = self.MONITOR_URL_TEMPLATE.format(
-            endpoint='uptime',
+            endpoint='kv_emits',
             **instance
         )
         try:
