@@ -39,8 +39,7 @@ class CeleryCheck(AgentCheck):
             if not key in instance:
                 raise Exception("A {} must be specified".format(key))
 
-    def _get_data_from_url(self, url, instance, params=None):
-        "Hit a given URL and return the parsed json"
+    def _get_response_from_url(self, url, instance, params=None):
         self.log.debug('Fetching Celery stats at url: %s' % url)
 
         auth=None
@@ -48,10 +47,15 @@ class CeleryCheck(AgentCheck):
             auth = (instance['username'], instance['password'])
 
         request_headers = headers(self.agentConfig)
-        r = requests.get(url, params=params, auth=auth, headers=request_headers,
+        response = requests.get(url, params=params, auth=auth, headers=request_headers,
                          timeout=int(instance.get('timeout', self.TIMEOUT)))
-        r.raise_for_status()
-        return r.json()
+        response.raise_for_status()
+        return response
+
+    def _get_data_from_url(self, url, instance, params=None):
+        "Hit a given URL and return the parsed json"
+        response = self._get_response_from_url(url, instance, params)
+        return response.json()
 
     def _safe_get_data_from_url(self, url, instance, params=None):
         try:
@@ -77,7 +81,7 @@ class CeleryCheck(AgentCheck):
     def check_connection(self, instance, tags):
         url = instance['flower_url']
         try:
-            self._get_data_from_url(url, instance)
+            self._get_response_from_url(url, instance)
         except requests.exceptions.Timeout as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
                 tags=tags, message="Request timeout: {0}, {1}".format(url, e))
