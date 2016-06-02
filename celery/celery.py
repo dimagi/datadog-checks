@@ -99,39 +99,47 @@ class CeleryCheck(AgentCheck):
                 tags=tags,
                 message='Connection to %s was successful' % url)
 
-    def _get_hostname_for_worker(self, worker_name):
+    def _split_worker_name(self, worker_name):
         """Assumes worker name formatted as follows: celery@hostname.domain_queue
         """
         host_string = worker_name.split('@', 1)[1]
         hostname = host_string.split('.', 1)[0]
-        return hostname
+        short_worker_name = host_string.split('_', 1)[1]
+        return hostname, short_worker_name
 
     def get_worker_data(self, instance, tags):
         """
         :return: list of worker names
         """
         data = self._get_data_for_endpoint(instance, 'workers')
-        for worker_name, stats in data.items():
-            hostname = self._get_hostname_for_worker(worker_name)
-            queue = stats['active_queues'][0]['name']
-            worker_tag = 'celery_worker:{}'.format(worker_name)
+        if data is None:
+            return []
+
+        status_data = self._get_data_for_endpoint(instance, 'workers', params={'status': True})
+
+        for worker_name, worker_data in data.items():
+            hostname, short_worker_name = self._split_worker_name(worker_name)
+            queue = worker_data['active_queues'][0]['name']
+            worker_tag = 'celery_worker:{}'.format(short_worker_name)
             queue_tag = 'celery_queue:{}'.format(queue)
 
             self.gauge(
                 '{}.tasks_registered'.format(self.SOURCE_TYPE_NAME),
-                len(stats['registered']),
+                len(worker_data['registered']),
                 hostname=hostname,
                 tags=tags + [worker_tag, queue_tag]
             )
 
-            self.gauge(
-                '{}.max-concurrency'.format(self.SOURCE_TYPE_NAME),
-                stats['pool']['max-concurrency'],
-                hostname=hostname,
-                tags=tags + [worker_tag, queue_tag]
-            )
+            stats = worker_data['stats']
+            if stats.get('pool', None):
+                self.gauge(
+                    '{}.max-concurrency'.format(self.SOURCE_TYPE_NAME),
+                    stats['pool']['max-concurrency'],
+                    hostname=hostname,
+                    tags=tags + [worker_tag, queue_tag]
+                )
 
-            for task_name, total in stats['total']:
+            for task_name, total in stats['total'].items():
                 self.gauge(
                     '{}.tasks_completed'.format(self.SOURCE_TYPE_NAME),
                     total,
@@ -139,20 +147,20 @@ class CeleryCheck(AgentCheck):
                     tags=tags + [worker_tag, queue_tag, 'celery_task_name:{}'.format(task_name)]
                 )
 
-            dd_status = AgentCheck.OK if stats['status'] else AgentCheck.CRITICAL
+            status = status_data.get(worker_name, False)
+            dd_status = AgentCheck.OK if status else AgentCheck.CRITICAL
             self.service_check(
                 '{}.worker_status'.format(self.SOURCE_TYPE_NAME),
                 dd_status,
                 hostname=hostname,
                 tags=tags + [worker_tag]
             )
-
         return data.keys()
 
     def get_task_data(self, instance, tags, workers):
         for worker in workers:
-            hostname = self._get_hostname_for_worker(worker)
-            metric_tags = tags + ['celery_worker:{}'.format(worker)]
+            hostname, short_worker_name = self._split_worker_name(worker)
+            metric_tags = tags + ['celery_worker:{}'.format(short_worker_name)]
             for state in self.TASK_STATES:
 
                 data = self._get_data_for_endpoint(instance, 'tasks', params={
