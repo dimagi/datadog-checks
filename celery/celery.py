@@ -111,7 +111,7 @@ class CeleryCheck(AgentCheck):
         """
         :return: list of worker names
         """
-        data = self._get_data_for_endpoint(instance, 'workers')
+        data = self._get_data_for_endpoint(instance, 'workers', params={'refresh': True})
         if data is None:
             return []
 
