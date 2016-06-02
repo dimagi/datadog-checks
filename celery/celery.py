@@ -14,7 +14,7 @@ class CeleryCheck(AgentCheck):
     SOURCE_TYPE_NAME = 'celery'
     TIMEOUT = 5
     URL_ENDPOINTS = {
-        'workers': '/api/worker',
+        'workers': '/api/workers',
         'tasks': '/api/tasks',
         'task_types': '/api/task/types',
     }
