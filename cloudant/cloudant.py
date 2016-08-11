@@ -120,11 +120,14 @@ class CloudantCheck(AgentCheck):
 
     def disk_use_data(self, instance, tags):
         def _stat_name(target):
+            """
+            'dimagi003 Free disk space (bytes)' -> 'free'
+            """
             tokens = target.split(' ')
             assert tokens[0] == instance['cluster']
             return tokens[1].lower()
 
-        self.get_data_for_endpoint(instance, 'disk_use', _stat_name, tags=tags)
+        self.get_data_for_endpoint(instance, 'disk_use_v2', _stat_name, metric_group='disk_use', tags=tags)
 
     def get_data_for_endpoint(self, instance, endpoint, stat_name_fn=None, metric_group=None, tags=None):
         url = self.MONITOR_URL_TEMPLATE.format(
