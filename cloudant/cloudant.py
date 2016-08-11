@@ -120,6 +120,9 @@ class CloudantCheck(AgentCheck):
 
     def disk_use_data(self, instance, tags):
         def _stat_name(target):
+            """
+            'dimagi003 Free disk space (bytes)' -> 'free'
+            """
             tokens = target.split(' ')
             assert tokens[0] == instance['cluster']
             return tokens[1].lower()
