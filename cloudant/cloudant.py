@@ -70,15 +70,15 @@ class CloudantCheck(AgentCheck):
         self.rate_status_code_data(instance, tags)
         self.rate_verb_data(instance, tags)
         self.disk_use_data(instance, tags)
-        self.get_data_for_endpoint(instance, 'kv_emits', tags=tags)
-        self.get_data_for_endpoint(instance, 'map_doc', tags=tags)
-        self.get_data_for_endpoint(instance, 'rps', metric_group='doc_reads', tags=tags)
-        self.get_data_for_endpoint(instance, 'wps', metric_group='doc_writes', tags=tags)
+        self.get_data_for_endpoint(instance, 'kv_emits_v2', tags=tags)
+        self.get_data_for_endpoint(instance, 'map_doc_v2', tags=tags)
+        self.get_data_for_endpoint(instance, 'rps_v2', metric_group='doc_reads', tags=tags)
+        self.get_data_for_endpoint(instance, 'wps_v2', metric_group='doc_writes', tags=tags)
         self.active_task_data(instance, tags)
 
     def check_connection(self, instance, tags):
         url = self.MONITOR_URL_TEMPLATE.format(
-            endpoint='kv_emits',
+            endpoint='kv_emits_v2',
             **instance
         )
         try:
@@ -103,7 +103,7 @@ class CloudantCheck(AgentCheck):
     def rate_status_code_data(self, instance, tags):
         self.get_data_for_endpoint(
             instance,
-            'rate/status_code',
+            'rate_v2/status_code',
             lambda target: target.split(' ')[-1],
             metric_group='http_status_code',
             tags=tags
@@ -112,7 +112,7 @@ class CloudantCheck(AgentCheck):
     def rate_verb_data(self, instance, tags):
         self.get_data_for_endpoint(
             instance,
-            'rate/verb',
+            'rate_v2/verb',
             lambda target: target.split(' ')[-1].lower(),
             metric_group='http_method',
             tags=tags
