@@ -17,6 +17,7 @@ class CeleryCheck(AgentCheck):
         'workers': '/api/workers',
         'tasks': '/api/tasks',
         'task_types': '/api/task/types',
+        'tasks_queued': '/monitor/broker',
     }
 
     # http://docs.celeryproject.org/en/latest/reference/celery.states.html#misc
@@ -77,6 +78,7 @@ class CeleryCheck(AgentCheck):
 
         workers = self.get_worker_data(instance, tags)
         self.get_task_data(instance, tags, workers)
+        self.get_tasks_queued_data(instance, tags)
 
     def check_connection(self, instance, tags):
         url = instance['flower_url']
@@ -106,6 +108,16 @@ class CeleryCheck(AgentCheck):
         hostname = host_string.split('.', 1)[0]
         short_worker_name = host_string.split('_', 1)[1]
         return hostname, short_worker_name
+
+    def get_tasks_queued_data(self, instance, tags):
+        data = self._get_data_for_endpoint(instance, 'tasks_queued')
+        for queue_name, tasks_queued in data.items():
+            queue_tag = 'celery_queue:{}'.format(queue_name)
+            self.gauge(
+                '{}.tasks_queued'.format(self.SOURCE_TYPE_NAME),
+                tasks_queued,
+                tags=tags + [queue_tag]
+            )
 
     def get_worker_data(self, instance, tags):
         """
