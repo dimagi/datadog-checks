@@ -19,15 +19,15 @@ class CloudantCheck(AgentCheck):
     SERVICE_CHECK_NAME = 'cloudant.can_connect'
     SOURCE_TYPE_NAME = 'cloudant'
     TIMEOUT = 5
-    MONITOR_URL_TEMPLATE = 'https://{username}.cloudant.com/_api/v2/monitoring/{endpoint}?cluster={cluster}'
-    ACTIVE_TASKS_URL_TEMPLATE = 'https://{username}.cloudant.com/_active_tasks'
+    MONITOR_URL_TEMPLATE = 'https://{cloudant_domain}/_api/v2/monitoring/{endpoint}?cluster={cluster}'
+    ACTIVE_TASKS_URL_TEMPLATE = 'https://{cloudant_domain}/_active_tasks'
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(CloudantCheck, self).__init__(name, init_config, agentConfig, instances)
         self.last_timestamps = {}
 
     def _validate_instance(self, instance):
-        for key in ['cluster', 'username', 'password']:
+        for key in ['cluster', 'username', 'password', 'cloudant_domain']:
             if not key in instance:
                 raise Exception("A {} must be specified".format(key))
 
