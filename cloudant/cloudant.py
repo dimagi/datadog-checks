@@ -70,15 +70,15 @@ class CloudantCheck(AgentCheck):
         self.rate_status_code_data(instance, tags)
         self.rate_verb_data(instance, tags)
         self.disk_use_data(instance, tags)
-        self.get_data_for_endpoint(instance, 'kv_emits_v2', metric_group='kv_emits', tags=tags)
-        self.get_data_for_endpoint(instance, 'map_doc_v2', metric_group='map_doc', tags=tags)
-        self.get_data_for_endpoint(instance, 'rps_v2', metric_group='doc_reads', tags=tags)
-        self.get_data_for_endpoint(instance, 'wps_v2', metric_group='doc_writes', tags=tags)
+        self.get_data_for_endpoint(instance, 'kv_emits', metric_group='kv_emits', tags=tags)
+        self.get_data_for_endpoint(instance, 'map_doc', metric_group='map_doc', tags=tags)
+        self.get_data_for_endpoint(instance, 'rps', metric_group='doc_reads', tags=tags)
+        self.get_data_for_endpoint(instance, 'wps', metric_group='doc_writes', tags=tags)
         self.active_task_data(instance, tags)
 
     def check_connection(self, instance, tags):
         url = self.MONITOR_URL_TEMPLATE.format(
-            endpoint='kv_emits_v2',
+            endpoint='kv_emits',
             **instance
         )
         try:
@@ -103,7 +103,7 @@ class CloudantCheck(AgentCheck):
     def rate_status_code_data(self, instance, tags):
         self.get_data_for_endpoint(
             instance,
-            'rate_v2/status_code',
+            'rate/status_code',
             lambda target: target.split(' ')[-1],
             metric_group='http_status_code',
             tags=tags
@@ -112,7 +112,7 @@ class CloudantCheck(AgentCheck):
     def rate_verb_data(self, instance, tags):
         self.get_data_for_endpoint(
             instance,
-            'rate_v2/verb',
+            'rate/verb',
             lambda target: target.split(' ')[-1].lower(),
             metric_group='http_method',
             tags=tags
@@ -127,7 +127,7 @@ class CloudantCheck(AgentCheck):
             assert tokens[0] == instance['cluster']
             return tokens[1].lower()
 
-        self.get_data_for_endpoint(instance, 'disk_use_v2', _stat_name, metric_group='disk_use', tags=tags)
+        self.get_data_for_endpoint(instance, 'disk_use', _stat_name, metric_group='disk_use', tags=tags)
 
     def get_data_for_endpoint(self, instance, endpoint, stat_name_fn=None, metric_group=None, tags=None):
         url = self.MONITOR_URL_TEMPLATE.format(
