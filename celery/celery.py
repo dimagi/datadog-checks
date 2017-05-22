@@ -102,11 +102,14 @@ class CeleryCheck(AgentCheck):
                 message='Connection to %s was successful' % url)
 
     def _split_worker_name(self, worker_name):
-        """Assumes worker name formatted as follows: celery@hostname.domain_queue
+        """Assumes worker name is formatted as follows: celery@hostname.domain_queue,
+        best effort to parse and get less verbose worker name
         """
         host_string = worker_name.split('@', 1)[1]
         hostname = host_string.split('.', 1)[0]
-        short_worker_name = host_string.split('_', 1)[1]
+        short_worker_name = host_string
+        if '_' in host_string:
+            short_worker_name = host_string.split('_', 1)[1]
         return hostname, short_worker_name
 
     def get_tasks_queued_data(self, instance, tags):
