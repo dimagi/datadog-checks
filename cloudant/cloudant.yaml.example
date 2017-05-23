@@ -2,6 +2,7 @@ init_config:
 
 instances:
     -   cluster: my_cluster
-        username: usernmae
+        cloudant_domain: subdomain.cloudant.com
+        username: username
         password: password
         # timeout: 5
