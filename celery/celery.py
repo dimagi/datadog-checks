@@ -108,7 +108,7 @@ class CeleryCheck(AgentCheck):
         name_string = worker_name.split('@', 1)[1]
         hostname, worker_name = name_string.split('_', 1)
         worker_name = worker_name.split('.', 1)[0]  # strip timestamp
-        return hostname, worker_name
+        return worker_name
 
     def get_tasks_queued_data(self, instance, tags):
         data = self._get_data_for_endpoint(instance, 'tasks_queued')
@@ -131,7 +131,7 @@ class CeleryCheck(AgentCheck):
         status_data = self._get_data_for_endpoint(instance, 'workers', params={'status': True})
 
         for worker_name, worker_data in data.items():
-            hostname, worker_name = self._split_worker_name(worker_name)
+            worker_name = self._split_worker_name(worker_name)
             queue = worker_data['active_queues'][0]['name']
             worker_tag = 'celery_worker:{}'.format(worker_name)
             queue_tag = 'celery_queue:{}'.format(queue)
@@ -139,7 +139,6 @@ class CeleryCheck(AgentCheck):
             self.gauge(
                 '{}.tasks_registered'.format(self.SOURCE_TYPE_NAME),
                 len(worker_data['registered']),
-                hostname=hostname,
                 tags=tags + [worker_tag, queue_tag]
             )
 
@@ -148,7 +147,6 @@ class CeleryCheck(AgentCheck):
                 self.gauge(
                     '{}.max-concurrency'.format(self.SOURCE_TYPE_NAME),
                     stats['pool']['max-concurrency'],
-                    hostname=hostname,
                     tags=tags + [worker_tag, queue_tag]
                 )
 
@@ -156,7 +154,6 @@ class CeleryCheck(AgentCheck):
                 self.gauge(
                     '{}.tasks_completed'.format(self.SOURCE_TYPE_NAME),
                     total,
-                    hostname=hostname,
                     tags=tags + [worker_tag, queue_tag, 'celery_task_name:{}'.format(task_name)]
                 )
 
@@ -165,14 +162,13 @@ class CeleryCheck(AgentCheck):
             self.service_check(
                 '{}.worker_status'.format(self.SOURCE_TYPE_NAME),
                 dd_status,
-                hostname=hostname,
                 tags=tags + [worker_tag]
             )
         return data.keys()
 
     def get_task_data(self, instance, tags, workers):
         for worker in workers:
-            hostname, worker_name = self._split_worker_name(worker)
+            worker_name = self._split_worker_name(worker)
             metric_tags = tags + ['celery_worker:{}'.format(worker_name)]
             for state in self.TASK_STATES:
 
@@ -184,7 +180,6 @@ class CeleryCheck(AgentCheck):
                 self.gauge(
                     '{}.tasks_by_state.{}'.format(self.SOURCE_TYPE_NAME, state),
                     len(data),
-                    hostname=hostname,
                     tags=metric_tags
                 )
 
