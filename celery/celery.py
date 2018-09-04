@@ -105,10 +105,13 @@ class CeleryCheck(AgentCheck):
         """Assumes worker name is formatted as follows: celery@<hostname>_<queue_name>_<queue_num>.<timestamp>_timestamp,
         best effort to parse and get less verbose worker name
         """
-        name_string = worker_name.split('@', 1)[1]
-        hostname, worker_name = name_string.split('_', 1)
-        worker_name = worker_name.split('.', 1)[0]  # strip timestamp
-        return worker_name
+        try:
+            name_string = worker_name.split('@', 1)[1]
+            hostname, worker_name = name_string.split('_', 1)
+            worker_name = worker_name.split('.', 1)[0]  # strip timestamp
+            return worker_name
+        except (IndexError, ValueError):
+            return worker_name
 
     def get_tasks_queued_data(self, instance, tags):
         data = self._get_data_for_endpoint(instance, 'tasks_queued')
