@@ -59,7 +59,7 @@ class AirflowCheck(AgentCheck):
             [count] = engine.execute('''
                 select count(*) from task_instance inner join dag on task_instance.dag_id = dag.dag_id
                 where dag.is_active = true and state = '{}'
-            '''.format(state))
+            '''.format(state)).fetchone()
             self.gauge('{}.task_instances.{}'.format(self.SOURCE_TYPE_NAME, state), count, tags=tags)
 
     def get_dag_run_data(self, instance, tags):
@@ -73,9 +73,9 @@ class AirflowCheck(AgentCheck):
         ]
         for state in states:
             [count] = engine.execute('''
-                select count(*) from dag_run inner join dag on task_instance.dag_id = dag.dag_id
+                select count(*) from dag_run inner join dag on dag_run.dag_id = dag.dag_id
                 where dag.is_active = true and state = '{}'
-            '''.format(state))
+            '''.format(state)).fetchone()
             self.gauge('{}.dag_runs.{}'.format(self.SOURCE_TYPE_NAME, state), count, tags=tags)
 
     def check_webserver_connection(self, instance, tags):
