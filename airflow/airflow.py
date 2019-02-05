@@ -47,6 +47,10 @@ class AirflowCheck(AgentCheck):
         )
 
     def get_task_data(self, instance, tags):
+        """
+        See https://github.com/apache/airflow/blob/1.8.1/airflow/utils/state.py#L44 for available
+        dag states
+        """
         engine = sqlalchemy.create_engine(instance[AIRFLOW_SQL_ALCHEMY_CONN_KEY])
         states = [
             'success',
@@ -54,6 +58,7 @@ class AirflowCheck(AgentCheck):
             'upstream_failed',
             'skipped',
             'running',
+            'queued',
         ]
         for state in states:
             [count] = engine.execute('''
@@ -64,7 +69,7 @@ class AirflowCheck(AgentCheck):
 
     def get_dag_run_data(self, instance, tags):
         """
-        See https://github.com/apache/airflow/blob/v1-8-stable/airflow/utils/state.py#L53 for available
+        See https://github.com/apache/airflow/blob/1.8.1/airflow/utils/state.py#L53 for available
         dag states
         """
         engine = sqlalchemy.create_engine(instance[AIRFLOW_SQL_ALCHEMY_CONN_KEY])
