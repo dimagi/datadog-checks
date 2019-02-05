@@ -51,7 +51,7 @@ class AirflowCheck(AgentCheck):
         states = [
             'success',
             'failed',
-            'failed_upstream',
+            'upstream_failed',
             'skipped',
             'running',
         ]
@@ -67,7 +67,7 @@ class AirflowCheck(AgentCheck):
         states = [
             'success',
             'failed',
-            'failed_upstream',
+            'upstream_failed',
             'skipped',
             'running',
         ]
