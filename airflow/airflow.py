@@ -63,12 +63,14 @@ class AirflowCheck(AgentCheck):
             self.gauge('{}.task_instances.{}'.format(self.SOURCE_TYPE_NAME, state), count, tags=tags)
 
     def get_dag_run_data(self, instance, tags):
+        """
+        See https://github.com/apache/airflow/blob/v1-8-stable/airflow/utils/state.py#L53 for available
+        dag states
+        """
         engine = sqlalchemy.create_engine(instance[AIRFLOW_SQL_ALCHEMY_CONN_KEY])
         states = [
             'success',
             'failed',
-            'upstream_failed',
-            'skipped',
             'running',
         ]
         for state in states:
