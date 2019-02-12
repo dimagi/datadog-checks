@@ -90,33 +90,16 @@ class PgBouncerCustom(AgentCheck):
                         password='', database_url='', tags=None, use_cached=True):
         if key in self.dbs and use_cached:
             return self.dbs[key]
-        try:
-            connect_kwargs = self._get_connect_kwargs(
-                host=host, port=port, user=user,
-                password=password, database_url=database_url
-            )
-            connection = pg.connect(**connect_kwargs)
-            connection.set_isolation_level(
-                pg.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-        except Exception:
-            redacted_url = self._get_redacted_dsn(host, port, user, database_url)
-            message = u'Cannot establish connection to {}'.format(redacted_url)
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
-                               tags=self._get_service_checks_tags(host, port, database_url, tags),
-                               message=message)
-            raise
+        connect_kwargs = self._get_connect_kwargs(
+            host=host, port=port, user=user,
+            password=password, database_url=database_url
+        )
+        connection = pg.connect(**connect_kwargs)
+        connection.set_isolation_level(
+            pg.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
         self.dbs[key] = connection
         return connection
-
-    def _get_redacted_dsn(self, host, port, user, database_url):
-        if not database_url:
-            return u'pgbouncer://%s:******@%s:%s/%s' % (user, host, port, self.DB_NAME)
-
-        parsed_url = urlparse(database_url)
-        if parsed_url.password:
-            return database_url.replace(parsed_url.password, '******')
-        return database_url
 
     def check(self, instance):
         host = instance.get('host', '')
@@ -140,9 +123,3 @@ class PgBouncerCustom(AgentCheck):
             db = self._get_connection(key, host, port, user, password, tags=tags,
                                       database_url=database_url, use_cached=False)
             self._collect_stats(db, tags)
-
-        redacted_dsn = self._get_redacted_dsn(host, port, user, database_url)
-        message = u'Established connection to {}'.format(redacted_dsn)
-        self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK,
-                           tags=self._get_service_checks_tags(host, port, database_url, tags),
-                           message=message)
