@@ -48,8 +48,8 @@ class PgBouncerCustom(AgentCheck):
                     count_by_db_and_host = defaultdict(lambda: defaultdict(int))
                     for row in rows:
                         self.log.debug("Processing row: %r", row)
-                        db_name = row[2]
-                        client_addr = row[4]
+                        db_name = row['database']
+                        client_addr = row['addr']
                         count_by_db_and_host[client_addr][db_name] += 1
                     for client, counts_by_host in count_by_db_and_host.iteritems():
                         for db_name, count in counts_by_host.iteritems():
