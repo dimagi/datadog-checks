@@ -1,0 +1,9 @@
+init_config:
+
+instances:
+   - host: localhost
+     port: 6432
+     username: username
+     password: password
+     tags:
+       - key:value
