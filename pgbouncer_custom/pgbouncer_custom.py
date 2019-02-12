@@ -1,6 +1,6 @@
 import psycopg2 as pg
 import psycopg2.extras as pgextras
-from collections import defaultdict
+from collections import Counter
 from six.moves.urllib.parse import urlparse
 
 from checks import AgentCheck
@@ -45,21 +45,15 @@ class PgBouncerCustom(AgentCheck):
                 except pg.Error:
                     self.log.exception("Not all metrics may be available")
                 else:
-                    count_by_db_and_host = defaultdict(lambda: defaultdict(int))
-                    for row in rows:
-                        self.log.debug("Processing row: %r", row)
-                        db_name = row['database']
-                        client_addr = row['addr']
-                        count_by_db_and_host[client_addr][db_name] += 1
-                    for client, counts_by_host in count_by_db_and_host.iteritems():
-                        for db_name, count in counts_by_host.iteritems():
-                            tags = {'client_addr': client, 'db_name': db_name}
-                            tags.extend(instance_tags)
-                            self.gauge(
-                                'pgbouncer_custom.clients.count',
-                                count,
-                                tags=tags
-                            )
+                    count_by_db_and_host = Counter([(row['addr'], row['database']) for row in rows])
+                    for (addr, db), count in count_by_db_and_host:
+                        tags = {'client_addr': addr, 'db_name': db}
+                        tags.extend(instance_tags)
+                        self.gauge(
+                            'pgbouncer_custom.clients.count',
+                            count,
+                            tags=tags
+                        )
                     if not rows:
                         self.log.warning("No results were found for query: %s", self.QUERY)
         except pg.Error:
