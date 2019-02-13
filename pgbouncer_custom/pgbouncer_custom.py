@@ -13,7 +13,6 @@ class ShouldRestartException(Exception):
 class PgBouncerCustom(AgentCheck):
     # Adapted from https://github.com/DataDog/integrations-core/blob/master/pgbouncer/datadog_checks/pgbouncer/pgbouncer.py
     DB_NAME = 'pgbouncer'
-    SERVICE_CHECK_NAME = 'pgbouncer.can_connect'
     QUERY = 'SHOW CLIENTS'
 
     def _collect_stats(self, db, instance_tags):
