@@ -16,25 +16,6 @@ class PgBouncerCustom(AgentCheck):
     SERVICE_CHECK_NAME = 'pgbouncer.can_connect'
     QUERY = 'SHOW CLIENTS'
 
-    def _get_service_checks_tags(self, host, port, database_url, tags=None):
-        if tags is None:
-            tags = []
-
-        if database_url:
-            parsed_url = urlparse(database_url)
-            host = parsed_url.hostname
-            port = parsed_url.port
-
-        service_checks_tags = [
-            "host:%s" % host,
-            "port:%s" % port,
-            "db:%s" % self.DB_NAME
-        ]
-        service_checks_tags.extend(tags)
-        service_checks_tags = list(set(service_checks_tags))
-
-        return service_checks_tags
-
     def _collect_stats(self, db, instance_tags):
         try:
             with db.cursor(cursor_factory=pgextras.DictCursor) as cursor:
