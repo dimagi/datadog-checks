@@ -1,8 +1,6 @@
 # datadog-checks
 Custom datadog checks
 
-See https://docs.cloudant.com/monitoring.html
-
 ## Installation
 
 1. Copy `<check>/<check>.py` to the [checks.d](http://docs.datadoghq.com/guides/agent_checks/#directory) directory.
