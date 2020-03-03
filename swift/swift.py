@@ -47,7 +47,7 @@ class SwiftCheck(AgentCheck):
     """Extracts stats from OpenStack Swift"""
     SERVICE_CHECK_NAME = 'swift.can_connect'
     SOURCE_TYPE_NAME = 'swift'
-    client = None
+    clients = {}
 
     @staticmethod
     def _validate_instance(instance):
@@ -55,15 +55,19 @@ class SwiftCheck(AgentCheck):
             if key not in instance:
                 raise Exception("A {} must be specified".format(key))
 
+    def _get_client(self, instance):
+        auth_url = instance[SWIFT_AUTH_URL_KEY]
+        key = (auth_url, instance[SWIFT_USERNAME_KEY], instance[SWIFT_PASSWORD_KEY])
+        if key not in self.clients:
+            self.clients[key] = SwiftClient(
+                auth_url, instance[SWIFT_USERNAME_KEY], instance[SWIFT_PASSWORD_KEY]
+            )
+        return self.clients[key]
+
     def check(self, instance):
         SwiftCheck._validate_instance(instance)
 
         tags = instance.get('tags', [])
-
-        if not self.client:
-            self.client = SwiftClient(
-                instance[SWIFT_AUTH_URL_KEY], instance[SWIFT_USERNAME_KEY], instance[SWIFT_PASSWORD_KEY]
-            )
 
         account_info = self.get_account_info(instance, tags)
         bytes_used = account_info['used_bytes']
@@ -77,9 +81,10 @@ class SwiftCheck(AgentCheck):
     def get_account_info(self, instance, tags):
         url = instance[SWIFT_AUTH_URL_KEY]
 
+        client = self._get_client(instance)
         try:
-            self.client.authenticate()
-            account_info = self.client.account_info()
+            client.authenticate()
+            account_info = client.account_info()
         except requests.exceptions.Timeout as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
                 tags=tags, message="Request timeout: {0}, {1}".format(url, e))
