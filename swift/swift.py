@@ -33,8 +33,12 @@ class SwiftClient(object):
             'X-Auth-Token': self.auth_token
         }
 
+    def reset(self):
+        self.auth_token = None
+
     def account_info(self):
         resp = requests.get(self.storage_url, headers=self._auth_headers(), timeout=self.timeout)
+        resp.raise_for_status()
         return {
             'quota_bytes': int(resp.headers['X-Account-Meta-Quota-Bytes']),
             'used_bytes': int(resp.headers['X-Account-Bytes-Used']),
@@ -90,6 +94,7 @@ class SwiftCheck(AgentCheck):
                 tags=tags, message="Request timeout: {0}, {1}".format(url, e))
             raise
         except requests.exceptions.HTTPError as e:
+            client.reset()
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
                 tags=tags, message=str(e.message))
             raise
