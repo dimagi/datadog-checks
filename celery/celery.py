@@ -160,7 +160,7 @@ class CeleryCheck(AgentCheck):
             self.service_check(
                 "{}.worker_status".format(self.SOURCE_TYPE_NAME), dd_status, tags=tags + [worker_tag]
             )
-        return data.keys()
+        return list(data.keys())
 
     def get_task_data(self, instance, tags, workers):
         for worker in workers:
@@ -186,11 +186,11 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         path = sys.argv[1]
     else:
-        print "Usage: python celery.py <path_to_config>"
+        print("Usage: python celery.py <path_to_config>")
     check, instances = CeleryCheck.from_yaml(path)
     for instance in instances:
-        print "\nRunning the check against url: %s" % (instance["flower_url"])
+        print(("\nRunning the check against url: %s" % (instance["flower_url"])))
         check.check(instance)
         if check.has_events():
-            print "Events: %s" % (check.get_events())
-        print "Metrics: %s" % (check.get_metrics())
+            print(("Events: %s" % (check.get_events())))
+        print(("Metrics: %s" % (check.get_metrics())))
