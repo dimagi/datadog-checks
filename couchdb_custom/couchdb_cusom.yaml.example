@@ -1,0 +1,10 @@
+init_config:
+
+instances:
+  - host: 10.0.0.1
+    port: 5984
+    local_port: 5986
+    user: username
+    password: password
+    tags:
+      - environment:staging
