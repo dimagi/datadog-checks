@@ -43,6 +43,15 @@ class CouchDBCustom(AgentCheck):
             context = SessionContext(host, port, local_port, session)
             node_hosts = _get_couch_nodes(context)
             shards = get_cluster_shard_details(context, node_hosts)
+            for (db, shard_name), db_shards in itertools.groupby(shards, key=lambda s: (s["db_name"], s["shard_name"])):
+                doc_counts = [shard["doc_count"] for shard in db_shards]
+                diff = max(doc_counts) - min(doc_counts)
+                self.gauge(
+                    'couchdb.shard_doc_count_diff',
+                    diff,
+                    tags=instance_tags + ["database:{}".format(db), "shard:{}".format(shard_name)]
+                )
+
             for shard in shards:
                 tags = [
                     "node:{}".format(shard["node"]),
