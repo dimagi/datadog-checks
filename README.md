@@ -7,3 +7,6 @@ Custom datadog checks
 2. Copy `<check>.yaml.example` to `conf.d/<check>.yaml`.
 3. Edit `<check>.yaml` with appropriate values.
 4. Restart the Datadog agent.
+
+
+See https://docs.datadoghq.com/developers/write_agent_check
