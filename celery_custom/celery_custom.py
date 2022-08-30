@@ -5,7 +5,7 @@ from util import headers
 import sys
 
 
-class CeleryCheck(AgentCheck):
+class CeleryCustom(AgentCheck):
     """Extracts stats from Celery via the Flower REST API
     http://flower.readthedocs.org/en/latest/api.html
     """
@@ -32,7 +32,7 @@ class CeleryCheck(AgentCheck):
     )
 
     def __init__(self, name, init_config, agentConfig, instances=None):
-        super(CeleryCheck, self).__init__(name, init_config, agentConfig, instances)
+        super(CeleryCustom, self).__init__(name, init_config, agentConfig, instances)
         self.last_timestamps = {}
 
     def _validate_instance(self, instance):
@@ -200,7 +200,7 @@ if __name__ == '__main__':
         path = sys.argv[1]
     else:
         print "Usage: python celery.py <path_to_config>"
-    check, instances = CeleryCheck.from_yaml(path)
+    check, instances = CeleryCustom.from_yaml(path)
     for instance in instances:
         print "\nRunning the check against url: %s" % (instance['flower_url'])
         check.check(instance)
