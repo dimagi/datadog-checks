@@ -1,7 +1,0 @@
-init_config:
-
-instances:
-    -   swift_auth_url: https://swift.instance.domain/auth/v1.0/
-        swift_username: username
-        swift_password: password
-
