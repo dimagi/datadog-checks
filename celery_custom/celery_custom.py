@@ -1,11 +1,11 @@
 import requests
 
-from checks import AgentCheck
+from datadog_checks.base import AgentCheck
 from util import headers
 import sys
 
 
-class CeleryCheck(AgentCheck):
+class CeleryCustom(AgentCheck):
     """Extracts stats from Celery via the Flower REST API
     http://flower.readthedocs.org/en/latest/api.html
     """
@@ -17,7 +17,7 @@ class CeleryCheck(AgentCheck):
         'workers': '/api/workers',
         'tasks': '/api/tasks',
         'task_types': '/api/task/types',
-        'tasks_queued': '/monitor/broker',
+        'tasks_queued': '/api/queues/length',
     }
 
     # http://docs.celeryproject.org/en/latest/reference/celery.states.html#misc
@@ -32,7 +32,7 @@ class CeleryCheck(AgentCheck):
     )
 
     def __init__(self, name, init_config, agentConfig, instances=None):
-        super(CeleryCheck, self).__init__(name, init_config, agentConfig, instances)
+        super(CeleryCustom, self).__init__(name, init_config, agentConfig, instances)
         self.last_timestamps = {}
 
     def _validate_instance(self, instance):
@@ -115,11 +115,11 @@ class CeleryCheck(AgentCheck):
 
     def get_tasks_queued_data(self, instance, tags):
         data = self._get_data_for_endpoint(instance, 'tasks_queued')
-        for queue_name, tasks_queued in data.items():
-            queue_tag = 'celery_queue:{}'.format(queue_name)
+        for queue in data.get('active_queues'):
+            queue_tag = 'celery_queue:{}'.format(queue.get('name'))
             self.gauge(
                 '{}.tasks_queued'.format(self.SOURCE_TYPE_NAME),
-                tasks_queued,
+                queue.get('messages'),
                 tags=tags + [queue_tag]
             )
 
@@ -133,7 +133,7 @@ class CeleryCheck(AgentCheck):
 
         status_data = self._get_data_for_endpoint(instance, 'workers', params={'status': True})
 
-        for worker_name, worker_data in data.items():
+        for worker_name, worker_data in list(data.items()):
             worker_name = self._split_worker_name(worker_name)
             queue = worker_data['active_queues'][0]['name']
             worker_tag = 'celery_worker:{}'.format(worker_name)
@@ -153,7 +153,7 @@ class CeleryCheck(AgentCheck):
                     tags=tags + [worker_tag, queue_tag]
                 )
 
-            for task_name, total in stats['total'].items():
+            for task_name, total in list(stats['total'].items()):
                 self.gauge(
                     '{}.tasks_completed'.format(self.SOURCE_TYPE_NAME),
                     total,
@@ -167,7 +167,7 @@ class CeleryCheck(AgentCheck):
                 dd_status,
                 tags=tags + [worker_tag]
             )
-        return data.keys()
+        return list(data.keys())
 
     def get_task_data(self, instance, tags, workers):
         for worker in workers:
@@ -199,11 +199,11 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         path = sys.argv[1]
     else:
-        print "Usage: python celery.py <path_to_config>"
-    check, instances = CeleryCheck.from_yaml(path)
+        print("Usage: python celery.py <path_to_config>")
+    check, instances = CeleryCustom.from_yaml(path)
     for instance in instances:
-        print "\nRunning the check against url: %s" % (instance['flower_url'])
+        print("\nRunning the check against url: %s" % (instance['flower_url']))
         check.check(instance)
         if check.has_events():
-            print 'Events: %s' % (check.get_events())
-        print 'Metrics: %s' % (check.get_metrics())
+            print('Events: %s' % (check.get_events()))
+        print('Metrics: %s' % (check.get_metrics()))
