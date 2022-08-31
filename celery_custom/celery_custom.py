@@ -1,6 +1,6 @@
 import requests
 
-from checks import AgentCheck
+from datadog_checks.base import AgentCheck
 from util import headers
 import sys
 
@@ -115,7 +115,7 @@ class CeleryCustom(AgentCheck):
 
     def get_tasks_queued_data(self, instance, tags):
         data = self._get_data_for_endpoint(instance, 'tasks_queued')
-        for queue_name, tasks_queued in data.items():
+        for queue_name, tasks_queued in list(data.items()):
             queue_tag = 'celery_queue:{}'.format(queue_name)
             self.gauge(
                 '{}.tasks_queued'.format(self.SOURCE_TYPE_NAME),
@@ -133,7 +133,7 @@ class CeleryCustom(AgentCheck):
 
         status_data = self._get_data_for_endpoint(instance, 'workers', params={'status': True})
 
-        for worker_name, worker_data in data.items():
+        for worker_name, worker_data in list(data.items()):
             worker_name = self._split_worker_name(worker_name)
             queue = worker_data['active_queues'][0]['name']
             worker_tag = 'celery_worker:{}'.format(worker_name)
@@ -153,7 +153,7 @@ class CeleryCustom(AgentCheck):
                     tags=tags + [worker_tag, queue_tag]
                 )
 
-            for task_name, total in stats['total'].items():
+            for task_name, total in list(stats['total'].items()):
                 self.gauge(
                     '{}.tasks_completed'.format(self.SOURCE_TYPE_NAME),
                     total,
@@ -167,7 +167,7 @@ class CeleryCustom(AgentCheck):
                 dd_status,
                 tags=tags + [worker_tag]
             )
-        return data.keys()
+        return list(data.keys())
 
     def get_task_data(self, instance, tags, workers):
         for worker in workers:
@@ -199,11 +199,11 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         path = sys.argv[1]
     else:
-        print "Usage: python celery.py <path_to_config>"
+        print("Usage: python celery.py <path_to_config>")
     check, instances = CeleryCustom.from_yaml(path)
     for instance in instances:
-        print "\nRunning the check against url: %s" % (instance['flower_url'])
+        print("\nRunning the check against url: %s" % (instance['flower_url']))
         check.check(instance)
         if check.has_events():
-            print 'Events: %s' % (check.get_events())
-        print 'Metrics: %s' % (check.get_metrics())
+            print('Events: %s' % (check.get_events()))
+        print('Metrics: %s' % (check.get_metrics()))
