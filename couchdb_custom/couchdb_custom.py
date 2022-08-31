@@ -1,14 +1,10 @@
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import itertools
 from collections import namedtuple
-from urllib import quote
-from urlparse import urljoin
+from urllib.parse import quote
+from urllib.parse import urljoin
 
 import requests
-from checks import AgentCheck
+from datadog_checks.base import AgentCheck
 
 
 class ShouldRestartException(Exception):
