@@ -115,6 +115,4 @@ def _get_shard_and_db(shard_name):
 
 def _in_maintenance_mode(context, host):
     response = context.request("/_up", host)
-    if response.get("status") == "maintenance_mode":
-        return True
-    return False
+    return response.get("status") == "maintenance_mode"
