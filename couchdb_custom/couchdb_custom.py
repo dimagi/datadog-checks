@@ -38,6 +38,13 @@ class CouchDBCustom(AgentCheck):
             session.auth = (user, password)
             context = SessionContext(host, port, local_port, session)
             node_hosts = _get_couch_nodes(context)
+            for node_host in node_hosts:
+                self.gauge(
+                    'couchdb.maintenance_mode',
+                    int(_in_maintenance_mode(context, node_host)),
+                    tags=instance_tags + ["node:{}".format(node_host)]
+                )
+
             shards = get_cluster_shard_details(context, node_hosts)
             for (db, shard_name), db_shards in itertools.groupby(shards, key=lambda s: (s["db_name"], s["shard_name"])):
                 doc_counts = [shard["doc_count"] for shard in db_shards]
@@ -105,3 +112,7 @@ def _get_shard_and_db(shard_name):
     """
     split = shard_name.split("/")
     return split[1], split[-1].split(".")[0]
+
+def _in_maintenance_mode(context, host):
+    response = context.request("/_up", host)
+    return response.get("status") == "maintenance_mode"
