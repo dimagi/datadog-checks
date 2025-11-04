@@ -40,7 +40,7 @@ class CouchDBCustom(AgentCheck):
             node_hosts = _get_couch_nodes(context)
             for node_host in node_hosts:
                 self.gauge(
-                    'couchdb.in_maintenance_mode',
+                    'couchdb.maintenance_mode',
                     int(_in_maintenance_mode(context, node_host)),
                     tags=instance_tags + ["node:{}".format(node_host)]
                 )
