@@ -16,7 +16,8 @@ class SessionContext(namedtuple("SessionContext", "host port local_port session"
         return self._request(self.port, path, host)
 
     def local_request(self, path, host=None):
-        return self._request(self.local_port, path, host)
+        local_path = f"/_node/_local/{path}"
+        return self._request(self.port, local_path, host)
 
     def _request(self, port, path, host):
         url = "http://{}:{}".format(host or self.host, port)
