@@ -114,5 +114,17 @@ def _get_shard_and_db(shard_name):
     return split[1], split[-1].split(".")[0]
 
 def _in_maintenance_mode(context, host):
-    response = context.request("/_up", host)
-    return response.get("status") == "maintenance_mode"
+    try:
+        response = context.request("/_up", host)
+        return response.get("status") == "maintenance_mode"
+    except requests.exceptions.HTTPError as e:
+        # When a node is in maintenance mode, /_up may return 404
+        # but still include the status in the response body
+        if e.response.status_code == 404:
+            try:
+                response_data = e.response.json()
+                return response_data.get("status") == "maintenance_mode"
+            except (ValueError, KeyError):
+                # If we can't parse JSON or it doesn't have status, assume not in maintenance
+                return False
+        raise
