@@ -11,7 +11,7 @@ class ShouldRestartException(Exception):
     pass
 
 
-class SessionContext(namedtuple("SessionContext", "host port local_port session")):
+class SessionContext(namedtuple("SessionContext", "host port session")):
     def request(self, path, host=None):
         return self._request(self.port, path, host)
 
@@ -30,14 +30,13 @@ class CouchDBCustom(AgentCheck):
     def check(self, instance):
         host = instance.get('host', '')
         port = instance.get('port', '')
-        local_port = instance.get('local_port', '')
         user = instance.get('username', '')
         password = instance.get('password', '')
         instance_tags = instance.get('tags', [])
 
         with requests.Session() as session:
             session.auth = (user, password)
-            context = SessionContext(host, port, local_port, session)
+            context = SessionContext(host, port, session)
             node_hosts = _get_couch_nodes(context)
             for node_host in node_hosts:
                 self.gauge(
