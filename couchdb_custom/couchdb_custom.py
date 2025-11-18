@@ -11,12 +11,13 @@ class ShouldRestartException(Exception):
     pass
 
 
-class SessionContext(namedtuple("SessionContext", "host port local_port session")):
+class SessionContext(namedtuple("SessionContext", "host port session")):
     def request(self, path, host=None):
         return self._request(self.port, path, host)
 
     def local_request(self, path, host=None):
-        return self._request(self.local_port, path, host)
+        local_path = f"/_node/_local/{path}"
+        return self._request(self.port, local_path, host)
 
     def _request(self, port, path, host):
         url = "http://{}:{}".format(host or self.host, port)
@@ -29,14 +30,13 @@ class CouchDBCustom(AgentCheck):
     def check(self, instance):
         host = instance.get('host', '')
         port = instance.get('port', '')
-        local_port = instance.get('local_port', '')
         user = instance.get('username', '')
         password = instance.get('password', '')
         instance_tags = instance.get('tags', [])
 
         with requests.Session() as session:
             session.auth = (user, password)
-            context = SessionContext(host, port, local_port, session)
+            context = SessionContext(host, port, session)
             node_hosts = _get_couch_nodes(context)
             for node_host in node_hosts:
                 self.gauge(
@@ -114,5 +114,17 @@ def _get_shard_and_db(shard_name):
     return split[1], split[-1].split(".")[0]
 
 def _in_maintenance_mode(context, host):
-    response = context.request("/_up", host)
-    return response.get("status") == "maintenance_mode"
+    try:
+        response = context.request("/_up", host)
+        return response.get("status") == "maintenance_mode"
+    except requests.exceptions.HTTPError as e:
+        # When a node is in maintenance mode, /_up may return 404
+        # but still include the status in the response body
+        if e.response.status_code == 404:
+            try:
+                response_data = e.response.json()
+                return response_data.get("status") == "maintenance_mode"
+            except (ValueError, KeyError):
+                # If we can't parse JSON or it doesn't have status, assume not in maintenance
+                return False
+        raise
