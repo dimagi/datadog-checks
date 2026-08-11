@@ -15,21 +15,9 @@ class CeleryCustom(AgentCheck):
     TIMEOUT = 5
     URL_ENDPOINTS = {
         'workers': '/api/workers',
-        'tasks': '/api/tasks',
         'task_types': '/api/task/types',
         'tasks_queued': '/api/queues/length',
     }
-
-    # http://docs.celeryproject.org/en/latest/reference/celery.states.html#misc
-    TASK_STATES = (
-        'PENDING',
-        'RECEIVED',
-        'STARTED',
-        'SUCCESS',
-        'FAILURE',
-        'REVOKED',
-        'RETRY'
-    )
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(CeleryCustom, self).__init__(name, init_config, agentConfig, instances)
@@ -76,8 +64,7 @@ class CeleryCustom(AgentCheck):
         tags = instance.get('tags', [])
         self.check_connection(instance, tags)
 
-        workers = self.get_worker_data(instance, tags)
-        self.get_task_data(instance, tags, workers)
+        self.get_worker_data(instance, tags)
         self.get_tasks_queued_data(instance, tags)
 
     def check_connection(self, instance, tags):
@@ -168,23 +155,6 @@ class CeleryCustom(AgentCheck):
                 tags=tags + [worker_tag]
             )
         return list(data.keys())
-
-    def get_task_data(self, instance, tags, workers):
-        for worker in workers:
-            worker_name = self._split_worker_name(worker)
-            metric_tags = tags + ['celery_worker:{}'.format(worker_name)]
-            for state in self.TASK_STATES:
-
-                data = self._get_data_for_endpoint(instance, 'tasks', params={
-                    'workername': worker,
-                    'state': state
-                })
-
-                self.gauge(
-                    '{}.tasks_by_state.{}'.format(self.SOURCE_TYPE_NAME, state),
-                    len(data),
-                    tags=metric_tags
-                )
 
     def _get_data_for_endpoint(self, instance, endpoint, params=None):
         url = '{}{}'.format(
