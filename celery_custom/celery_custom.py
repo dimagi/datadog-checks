@@ -13,9 +13,7 @@ class CeleryCustom(AgentCheck):
     SERVICE_CHECK_NAME = 'celery.can_connect'
     SOURCE_TYPE_NAME = 'celery'
     TIMEOUT = 5
-    URL_ENDPOINTS = {
-        'tasks_queued': '/api/queues/length',
-    }
+    QUEUE_LENGTH_ENDPOINT = '/api/queues/length'
 
     def _validate_instance(self, instance):
         for key in ['flower_url']:
@@ -82,7 +80,8 @@ class CeleryCustom(AgentCheck):
                 message='Connection to %s was successful' % url)
 
     def get_tasks_queued_data(self, instance, tags):
-        data = self._get_data_for_endpoint(instance, 'tasks_queued')
+        url = '{}{}'.format(instance['flower_url'], self.QUEUE_LENGTH_ENDPOINT)
+        data = self._safe_get_data_from_url(url, instance)
         for queue in data.get('active_queues'):
             queue_tag = 'celery_queue:{}'.format(queue.get('name'))
             self.gauge(
@@ -90,14 +89,6 @@ class CeleryCustom(AgentCheck):
                 queue.get('messages'),
                 tags=tags + [queue_tag]
             )
-
-    def _get_data_for_endpoint(self, instance, endpoint, params=None):
-        url = '{}{}'.format(
-            instance['flower_url'],
-            self.URL_ENDPOINTS[endpoint]
-        )
-
-        return self._safe_get_data_from_url(url, instance, params)
 
 
 if __name__ == '__main__':
