@@ -82,6 +82,8 @@ class CeleryCustom(AgentCheck):
     def get_tasks_queued_data(self, instance, tags):
         url = instance['flower_url'] + self.QUEUE_LENGTH_ENDPOINT
         data = self._safe_get_data_from_url(url, instance)
+        if data is None:
+            return
         for queue in data.get('active_queues'):
             queue_tag = f"celery_queue:{queue.get('name')}"
             self.gauge(
