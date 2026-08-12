@@ -14,8 +14,6 @@ class CeleryCustom(AgentCheck):
     SOURCE_TYPE_NAME = 'celery'
     TIMEOUT = 5
     URL_ENDPOINTS = {
-        'workers': '/api/workers',
-        'task_types': '/api/task/types',
         'tasks_queued': '/api/queues/length',
     }
 
@@ -64,7 +62,6 @@ class CeleryCustom(AgentCheck):
         tags = instance.get('tags', [])
         self.check_connection(instance, tags)
 
-        self.get_worker_data(instance, tags)
         self.get_tasks_queued_data(instance, tags)
 
     def check_connection(self, instance, tags):
@@ -88,18 +85,6 @@ class CeleryCustom(AgentCheck):
                 tags=tags,
                 message='Connection to %s was successful' % url)
 
-    def _split_worker_name(self, worker_name):
-        """Assumes worker name is formatted as follows: celery@<hostname>_<queue_name>_<queue_num>.<timestamp>_timestamp,
-        best effort to parse and get less verbose worker name
-        """
-        try:
-            name_string = worker_name.split('@', 1)[1]
-            hostname, worker_name = name_string.split('_', 1)
-            worker_name = worker_name.split('.', 1)[0]  # strip timestamp
-            return worker_name
-        except (IndexError, ValueError):
-            return worker_name
-
     def get_tasks_queued_data(self, instance, tags):
         data = self._get_data_for_endpoint(instance, 'tasks_queued')
         for queue in data.get('active_queues'):
@@ -109,52 +94,6 @@ class CeleryCustom(AgentCheck):
                 queue.get('messages'),
                 tags=tags + [queue_tag]
             )
-
-    def get_worker_data(self, instance, tags):
-        """
-        :return: list of worker names
-        """
-        data = self._get_data_for_endpoint(instance, 'workers', params={'refresh': True})
-        if data is None:
-            return []
-
-        status_data = self._get_data_for_endpoint(instance, 'workers', params={'status': True})
-
-        for worker_name, worker_data in list(data.items()):
-            worker_name = self._split_worker_name(worker_name)
-            queue = worker_data['active_queues'][0]['name']
-            worker_tag = 'celery_worker:{}'.format(worker_name)
-            queue_tag = 'celery_queue:{}'.format(queue)
-
-            self.gauge(
-                '{}.tasks_registered'.format(self.SOURCE_TYPE_NAME),
-                len(worker_data['registered']),
-                tags=tags + [worker_tag, queue_tag]
-            )
-
-            stats = worker_data['stats']
-            if stats.get('pool', None):
-                self.gauge(
-                    '{}.max-concurrency'.format(self.SOURCE_TYPE_NAME),
-                    stats['pool']['max-concurrency'],
-                    tags=tags + [worker_tag, queue_tag]
-                )
-
-            for task_name, total in list(stats['total'].items()):
-                self.gauge(
-                    '{}.tasks_completed'.format(self.SOURCE_TYPE_NAME),
-                    total,
-                    tags=tags + [worker_tag, queue_tag, 'celery_task_name:{}'.format(task_name)]
-                )
-
-            status = status_data.get(worker_name, False)
-            dd_status = AgentCheck.OK if status else AgentCheck.CRITICAL
-            self.service_check(
-                '{}.worker_status'.format(self.SOURCE_TYPE_NAME),
-                dd_status,
-                tags=tags + [worker_tag]
-            )
-        return list(data.keys())
 
     def _get_data_for_endpoint(self, instance, endpoint, params=None):
         url = '{}{}'.format(
