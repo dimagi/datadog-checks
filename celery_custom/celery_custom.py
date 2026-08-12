@@ -18,10 +18,10 @@ class CeleryCustom(AgentCheck):
     def _validate_instance(self, instance):
         for key in ['flower_url']:
             if not key in instance:
-                raise Exception("A {} must be specified".format(key))
+                raise Exception(f'A {key} must be specified')
 
     def _get_response_from_url(self, url, instance, params=None):
-        self.log.debug('Fetching Celery stats at url: %s' % url)
+        self.log.debug(f'Fetching Celery stats at url: {url}')
 
         auth=None
         if 'username' and 'password' in instance:
@@ -42,11 +42,11 @@ class CeleryCustom(AgentCheck):
         try:
             data = self._get_data_from_url(url, instance, params)
         except requests.exceptions.HTTPError as e:
-            self.warning('Error reading data from URL: {}'.format(url))
+            self.warning(f'Error reading data from URL: {url}')
             return
 
         if data is None:
-            self.warning("No stats could be retrieved from {}".format(url))
+            self.warning(f'No stats could be retrieved from {url}')
 
         return data
 
@@ -64,7 +64,7 @@ class CeleryCustom(AgentCheck):
             self._get_response_from_url(url, instance)
         except requests.exceptions.Timeout as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
-                tags=tags, message="Request timeout: {0}, {1}".format(url, e))
+                tags=tags, message=f'Request timeout: {url}, {e}')
             raise
         except requests.exceptions.HTTPError as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
@@ -77,15 +77,15 @@ class CeleryCustom(AgentCheck):
         else:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK,
                 tags=tags,
-                message='Connection to %s was successful' % url)
+                message=f'Connection to {url} was successful')
 
     def get_tasks_queued_data(self, instance, tags):
-        url = '{}{}'.format(instance['flower_url'], self.QUEUE_LENGTH_ENDPOINT)
+        url = instance['flower_url'] + self.QUEUE_LENGTH_ENDPOINT
         data = self._safe_get_data_from_url(url, instance)
         for queue in data.get('active_queues'):
-            queue_tag = 'celery_queue:{}'.format(queue.get('name'))
+            queue_tag = f"celery_queue:{queue.get('name')}"
             self.gauge(
-                '{}.tasks_queued'.format(self.SOURCE_TYPE_NAME),
+                f'{self.SOURCE_TYPE_NAME}.tasks_queued',
                 queue.get('messages'),
                 tags=tags + [queue_tag]
             )
@@ -98,8 +98,8 @@ if __name__ == '__main__':
         print("Usage: python celery.py <path_to_config>")
     check, instances = CeleryCustom.from_yaml(path)
     for instance in instances:
-        print("\nRunning the check against url: %s" % (instance['flower_url']))
+        print(f"\nRunning the check against url: {instance['flower_url']}")
         check.check(instance)
         if check.has_events():
-            print('Events: %s' % (check.get_events()))
-        print('Metrics: %s' % (check.get_metrics()))
+            print(f'Events: {check.get_events()}')
+        print(f'Metrics: {check.get_metrics()}')
