@@ -17,10 +17,6 @@ class CeleryCustom(AgentCheck):
         'tasks_queued': '/api/queues/length',
     }
 
-    def __init__(self, name, init_config, agentConfig, instances=None):
-        super(CeleryCustom, self).__init__(name, init_config, agentConfig, instances)
-        self.last_timestamps = {}
-
     def _validate_instance(self, instance):
         for key in ['flower_url']:
             if not key in instance:
