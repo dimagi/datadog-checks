@@ -5,35 +5,27 @@ Datadog check for celery using the [Flower API](http://flower.readthedocs.org/en
 
 - celery.can_connect
   - checks that we can connect to Flower
-- celery.worker_status
-  - an individual check for each worker tagged with `celery_worker:{worker name}`
 
 ## Metric list
 
-### Worker
-Per worker metrics.
+### Queue
+Per queue metrics, read from the broker via Flower's `/api/queues/length`.
 
 Tags:
 
-- celery_worker:{worker name}
-  - worker name is just the part after the host which is mostly the same as the queue name
 - celery_queue:{queue name}
 
 Metrics:
 
-- celery.tasks_registered
-- celery.max-concurrency
-- celery.tasks_completed
-    - additional tags: celery_task_name:{task name}
-  
-### Tasks
-Per task metrics
+- celery.tasks_queued
 
-Tags:
+## Worker and task metrics
 
-- celery_worker:{worker name}
+This check no longer reports per-worker or per-task metrics. Those are emitted
+directly by HQ under `commcare.celery.*`, which covers the same info more
+reliably:
 
-Metrics:
-
-- celery.tasks_by_state.{state} 
-    - [List of states](http://docs.celeryproject.org/en/latest/userguide/tasks.html#built-in-states)
+- `commcare.celery.task.time_to_run.seconds` — throughput, tagged
+  `state:success|failure|retry` and `celery_task_name`
+- `commcare.celery.task.time_to_start` — enqueue-to-start latency
+- `commcare.celery.heartbeat.*` — per queue liveness and blockage
